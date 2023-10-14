@@ -8,20 +8,26 @@
 #define M_PRINTLN(f_) (0);
 #endif
 
+#include <Arduino.h>
+
+#include "src/ESPConnect/ESPConnect.h"
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
 #include "OneButton.h"
 #include <Wire.h>
 #include <DS3231.h>
 #include "src/WS2813SegmentDriver/SegmentDriver.h"
-#include <WiFi.h>
+
 #include <ESPmDNS.h>
-#include <ESPAsyncWebServer.h>
 #include <SPI.h>
 #include <ArduinoJson.h>
 #include<SPIMemory.h>
 #include "SPIFFS.h"
 #include "src/cfgHandler/cfgHandler.h"
 
+AsyncWebServer server(80);
 
 #define DEBUG
 
@@ -32,10 +38,23 @@ SegmentDriver segmentDisplay;
 void setup()
 {  
     Serial.begin(115200);
+    ESPConnect.autoConnect("Free-O-Clock","1234567890");
+
+   if(ESPConnect.begin(&server))
+    {
+        Serial.println("Connected to WiFi");
+        Serial.println("IPAddress: "+WiFi.localIP().toString());
+    }
+    else
+    {
+        Serial.println("Failed to connect to WiFi");
+    }
+
     segmentDisplay.setup(); 
     setDiscovery();
     Wire.begin();
     readFile(SPIFFS, "config.json"); 
+    server.begin();
 }
 
 void loop()
