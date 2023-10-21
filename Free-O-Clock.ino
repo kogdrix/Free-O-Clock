@@ -1,4 +1,3 @@
-
 #define DEBUG
 #ifdef DEBUG
 #define M_PRINTF(f_, ...) {Serial.printf((f_), ##__VA_ARGS__);}
@@ -15,6 +14,9 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+#include <time.h>
+#include <sys/time.h>
+
 #include "OneButton.h"
 #include <Wire.h>
 #include <DS3231.h>
@@ -27,13 +29,24 @@
 #include "SPIFFS.h"
 #include "src/cfgHandler/cfgHandler.h"
 
-AsyncWebServer server(80);
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600; //CET
+const int   daylightOffset_sec = 3600;
 
 #define DEBUG
+
 
 OneButton button(34, true);
 RTClib myRTC;
 SegmentDriver segmentDisplay;
+AsyncWebServer server(80);
+/*
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);*/
+
+
+
+
 
 void setup()
 {  
@@ -55,6 +68,8 @@ void setup()
     Wire.begin();
     readFile(SPIFFS, "config.json"); 
     server.begin();
+    //timeClient.setPoolServerName("0.hu.pool.ntp.org");
+    //timeClient.begin();
 }
 
 void loop()
@@ -68,6 +83,17 @@ void loop()
         DateTime now = myRTC.now();
         segmentDisplay.setTime(now.hour(), now.minute(), now.second());
     }
+    
+    EVERY_N_MILLISECONDS(2000)
+    {
+        struct tm new_ts;
+        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+        //Get RTC time
+        getLocalTime(&new_ts);
+        Serial.print("Current time obtained from RTC after NTP config is: ");
+        Serial.println(&new_ts, "%A, %B %d %Y %H:%M:%S");
+    }
+   
 }
 
 
